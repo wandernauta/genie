@@ -1,0 +1,18 @@
+# genie
+
+*genie* is a simple Python script that, for a given C++ header file, comes up
+with stubs for its implementation (.cpp) file. It's like a crude version of
+Eclipse's Implement Methods refactoring option.
+
+*genie* requires `ctags` to be installed. It's compatible with Python 2 and
+Python 3.
+
+## Editors
+
+I use *genie* from inside vim. This is in my vimrc:
+
+    command! Genie execute ":.! genie %"
+
+## License
+
+*genie* is licensed under the terms of the ISC License.

@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+#
+# genie v0.1
+# Generates C/C++ implementations from header files
+#
+# Copyright (c) 2012, Wander Nauta
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
+#
+
+import re, glob, sys, os.path
+import subprocess
+
+class Genie:
+    def run(self, path):
+        ext = path.split('.')[-1]
+        if ext in "c c++ cc cp cpp cxx C".split(' '):
+            try:
+                path = glob.glob(path[:-len(ext)] + "[hH]*")[0]
+            except IndexError:
+                pass
+
+        sys.stdout.write('#include "{}"\n\n'.format(os.path.normpath(path)))
+
+        for fun in self.funs(path):
+            sys.stdout.write(fun + " {\n}\n\n")
+
+    def funs(self, path):
+        cmd = "ctags -f - --language-force=C++ --c-kinds=p --sort=no --excmd=pattern --fields=s " 
+        out = subprocess.check_output(cmd + path, shell=True).decode('utf8')
+
+        mths = []
+
+        for line in filter(None, out.split('\n')):
+            llist = line.split('\t')
+
+            if (len(llist) < 3):
+                continue
+
+            (tname, tfile, tre) = (llist[0], llist[1], llist[2])
+
+            if (len(llist) == 4):
+                tclass = llist[3].split(':')[1]
+            else:
+                tclass = ""
+
+            match = re.search(r"\^\s*(.*?);", tre)
+
+            if not match:
+                continue
+
+            mth = match.group(1)
+            mth = (mth.replace(tname, tclass + "::" + tname, 1)) if tclass else mth
+            mth = re.sub(r"\=(.*?)(,|\))", r"\2", mth)
+            mths.append(mth)
+
+        return mths
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.stdout.write("Usage: genie <file>\n")
+    else:
+        Genie().run(sys.argv[1])
